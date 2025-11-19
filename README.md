@@ -1,254 +1,399 @@
 # 🌱 BLE Soil Moisture Sensor
 
-A low-power, battery-operated soil moisture monitoring system using ESP32-H2 with Bluetooth Low Energy connectivity and BTHome V2 protocol for seamless Home Assistant integration.
+<div align="center">
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![ESP32-H2](https://img.shields.io/badge/ESP32--H2-Compatible-orange.svg)
+![Home Assistant](https://img.shields.io/badge/Home%20Assistant-BTHome%20V2-blue.svg)
+
+*A battery-powered, BLE-enabled soil moisture monitoring system with native Home Assistant integration*
+
+</div>
+
+## 📖 Overview
+
+A low-power wireless soil moisture sensor leveraging the ESP32-H2's Bluetooth Low Energy capabilities and BTHome V2 protocol for seamless Home Assistant integration. Features ultra-low power consumption with deep sleep modes enabling 2-4 months of operation on a single 350mAh LiPo battery.
+
+### Key Highlights
+
+- ✅ **Native Home Assistant Support** via BTHome V2 protocol
+- ✅ **Ultra-Low Power** consumption with 5-minute wake intervals
+- ✅ **Three Metrics**: Soil moisture, battery voltage, and battery percentage
+- ✅ **Capacitive Sensing** for corrosion-resistant measurements
+- ✅ **Bluetooth 5.3 LE** with long-range support
+- ✅ **Compact 3D-Printable Enclosure**
 
 ![Enclosure](.img/Enclosure.png)
 
-## 📋 Overview
-
-This project implements a wireless soil moisture sensor using capacitive sensing technology and Bluetooth Low Energy (BLE) communication via the BTHome V2 protocol. The ESP32-H2's ultra-low power capabilities combined with deep sleep modes enable months of operation on a single 350mAh battery.
+---
 
 ## ✨ Features
 
-- **BTHome V2 Protocol**: Native Home Assistant support with automatic discovery
-- **Ultra-Low Power**: Deep sleep with 5-minute wake intervals
-- **Tri-Sensor Monitoring**: Soil moisture, battery voltage, and battery percentage
-- **Capacitive Sensing**: Corrosion-resistant, long-lasting moisture detection
-- **Bluetooth 5.3 LE**: Reliable long-range wireless transmission
-- **Battery Optimized**: Minimal LED brightness and sleep mode between readings
-- **Compact Design**: 3D-printable enclosure
-
-## 🔧 Hardware Components
-
-### ESP32-H2 Super Mini
-[Board Details](https://www.espboards.dev/esp32/esp32-h2-super-mini/)
-
-- **Processor**: 32-bit RISC-V @ 96 MHz
-- **Wireless**: Bluetooth 5.3 LE, IEEE 802.15.4
-- **Radio**: -106.5 dBm receiver sensitivity
-- **Power**: Deep sleep optimized
-
-### Capacitive Soil Moisture Sensor
-
-- **Operating Voltage**: 3.3V - 5.5V DC
-- **Current**: ~5mA (only during readings)
-- **Output**: Analog 0-3.0V
-- **Material**: FR4 (corrosion-resistant)
-- **Dimensions**: 98mm × 23mm × 4mm
-
-### Power System
-
-- **Battery**: 350mAh LiPo (3.7V nominal)
-- **Voltage Divider**: 100kΩ + 100kΩ resistors
-- **Filter Capacitor**: 0.1µF ceramic
-- **Expected Runtime**: 2-4 months
-
-## 🔌 Pin Configuration
-
-| Component | GPIO Pin | Function | Notes |
-|-----------|----------|----------|-------|
-| Soil Moisture Sensor | GPIO2 | ADC1_CH1 | Analog input |
-| Moisture Power Control | GPIO22 | Digital Out | Powers sensor during reads |
-| Battery Voltage Monitor | GPIO1 | ADC1_CH0 | Via voltage divider |
-| Status LED (WS2812B) | GPIO8 | Digital Out | NeoPixel indicator |
-
-## 📡 BTHome V2 Implementation
-
-Broadcasts using [BTHome V2 format](https://bthome.io/format/) for automatic Home Assistant discovery.
-
-**Broadcasted Data:**
-- Battery Percentage (0x01) - uint8
-- Voltage (0x0C) - uint16, 0.001V precision
-- Moisture (0x14) - uint16, 0.01% precision
-
-**Device Name**: Soil Moisture Sensor  
-**Service UUID**: 0xFCD2  
-**Format**: V2, unencrypted
-
-## 🚀 Setup & Installation
-
-### 1. Hardware Assembly
-
-**Voltage Divider Circuit:**
-
-Battery+ ──[100kΩ]── ADC Pin (GPIO1) ──[100kΩ]── GND
-|
-[0.1µF Cap]
-|
-GND
-
-
-Mount the 0.1µF capacitor as close as possible to the ESP32 ADC pin.
-
-### 2. Software Dependencies
-
-Install via Arduino Library Manager:
-- [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino)
-- [FastLED](https://github.com/FastLED/FastLED)
-
-### 3. Upload Code
-
-1. Open the .ino file in Arduino IDE
-2. Select board: **ESP32-H2 Dev Module**
-3. Upload Speed: 921600
-4. Upload to ESP32-H2
-
-### 4. Calibration
-
-**Moisture Sensor:**
-1. Record ADC value in dry air (~3500)
-2. Submerge in water to line (~1200)
-3. Update in code:
-    ```cpp
-    const int airValue = 3500;
-    const int waterValue = 1200;
-    ```
-
-**Battery Voltage (100kΩ + 100kΩ):**
-    ```cpp
-    float readBatteryVoltage() {
-    long sum = 0;
-    for (int i = 0; i < 10; i++) {
-    sum += analogRead(BAT_ADC_PIN);
-    delay(10);
-    }
-    int rawValue = sum / 10;
-    float adcVoltage = (rawValue / 4095.0) * 3.3;
-    float batteryVoltage = adcVoltage * 2.0;
-    if (batteryVoltage > 4.3) batteryVoltage = 4.2;
-    if (batteryVoltage < 2.8) batteryVoltage = 3.0;
-    return batteryVoltage;
-    }
-    ```
-
-## 🏠 Home Assistant Integration
-
-### Prerequisites
-
-Before starting, ensure:
-- Home Assistant is running (version 2022.9 or later)
-- **Bluetooth integration** is enabled
-- ESP32-H2 sensor is powered on and within Bluetooth range (~10m)
-
-### Step-by-Step Onboarding
-
-#### 1. Initial Discovery
-
-1. Open Home Assistant web interface
-2. Navigate to **Settings → Devices & Services**
-3. Look for the **Discovered** section
-4. Your sensor appears as **"Soil Moisture Sensor"**
-
-#### 2. Configure the Device
-
-1. Click **Configure** on the discovered BTHome device
-2. Click **Submit**
-3. Select an **Area** (e.g., "Garden", "Balcony")
-4. Click **Finish**
-
-No API keys or YAML configuration required!
-
-#### 3. Verify Entities Created
-
-Three entities are automatically created:
-- `sensor.soil_moisture_sensor_moisture`
-- `sensor.soil_moisture_sensor_battery`
-- `sensor.soil_moisture_sensor_voltage`
-
-#### 4. Add to Dashboard
-
-1. Go to your Home Assistant dashboard
-2. Click **Edit Dashboard**
-3. Click **Add Card** → **Entities Card**
-4. Add all three sensor entities
-5. Click **Save**
-
-### Manual Addition (If Not Auto-Discovered)
-
-1. Go to **Settings → Devices & Services**
-2. Click **BTHome** integration
-3. Click **Add Entry**
-4. Press reset on ESP32-H2
-5. Click **Configure**
-
-### Troubleshooting
-
-**Sensor not discovered:**
-- Ensure Bluetooth integration is active
-- Check sensor within 10m
-- Wait for wake cycle (5 minutes)
-
-**Entities unavailable:**
-- Check battery level
-- Verify LED blinks
-- Reduce distance
-
-## ⚡ Power Optimization
-
-**Sleep Cycle**: 5 minutes  
-**Active Time**: ~6 seconds  
-**LED Brightness**: 8/255 (~3%)  
-**Battery Life**: 2-4 months
-
-Disable LED for production:
-
-#define BLINK_LED false
-
-text
-
-## 🔧 Configuration Options
-
-**Adjust Sleep:**
-const uint64_t SLEEP_TIME = 10ULL * 60ULL * 1000000ULL;
-
-text
-
-**Change Name:**
-#define DEVICE_NAME "Garden Sensor 1"
-
-text
-
-## 📊 Schematic
-
-![Schematic](.img/Schematics.png)
-
-> **Note**: Use 100kΩ resistors for voltage divider. Add 0.1µF capacitor close to ADC pin.
-## Caliberate the Moisture sensor
-
-use [`moisture_sensor_calibertae.ino`](./Arduino%20Sketch/moisture_sensor_calibertae.ino) to caliberate the sensor. For me it is typicaly `2048` when sensor is in air. and `768` when dipped in air.
-
-This would help us etup 
-
-```cpp
-#define MOISTURE_SENSOR_READING_IN_AIR 2048     // Dry reading
-#define MOISTURE_SENSOR_READING_IN_WATER 768    // Wet reading
-```
-
-
-
-## 🐛 Troubleshooting
-
-**LED not blinking:** GPIO8 may conflict - try GPIO10
-
-**Inaccurate moisture:** Recalibrate air/water values
-
-**Battery draining:** Reduce packets, increase sleep, disable LED
-
-## 📚 References
-
-- [BTHome Format](https://bthome.io/format/)
-- [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino)
-- [ESP32-H2 Board](https://www.espboards.dev/esp32/esp32-h2-super-mini/)
-- [Home Assistant BTHome](https://www.home-assistant.io/integrations/bthome/)
-
-## 📄 License
-
-MIT License
-
-## 🤝 Contributing
-
-Pull requests welcome! Open an issue first to discuss changes.
+| Feature | Description |
+|---------|-------------|
+| **BTHome V2 Protocol** | Automatic Home Assistant discovery with zero configuration |
+| **Deep Sleep Mode** | 5-minute sleep cycles for extended battery life |
+| **Tri-Sensor System** | Monitors soil moisture (0-100%), battery voltage (V), and charge level (%) |
+| **Capacitive Technology** | FR4-based sensor resistant to corrosion and oxidation |
+| **BLE 5.3** | Reliable 10m+ range with -106.5 dBm receiver sensitivity |
+| **LED Status Indicator** | Optional WS2812B NeoPixel for visual feedback |
+| **Battery Optimization** | Sensor power control, minimal LED brightness, efficient ADC sampling |
 
 ---
 
-**Made with 💚 for smart gardening**
+## 🔧 Hardware Components
+
+### Required Parts
+
+| Component | Specification | Notes |
+|-----------|--------------|-------|
+| **ESP32-H2 Super Mini** | 32-bit RISC-V @ 96 MHz | [Board Info](https://www.espboards.dev/esp32/esp32-h2-super-mini/) |
+| **Capacitive Soil Moisture Sensor** | 3.3-5.5V, Analog output | FR4 material, corrosion-resistant |
+| **LiPo Battery** | 350mAh, 3.7V | JST connector recommended |
+| **Resistors** | 2× 100kΩ ±1% | For voltage divider |
+| **Capacitor** | 2× 0.1µF ceramic | ADC filtering |
+
+### ESP32-H2 Specifications
+
+- **MCU**: 32-bit RISC-V single-core @ 96 MHz
+- **RAM**: 320 KB SRAM
+- **Flash**: 4 MB
+- **Bluetooth**: 5.3 LE (802.15.4 compatible)
+- **Sleep Current**: < 5 µA (deep sleep)
+- **GPIO**: 22 programmable pins
+
+### Soil Moisture Sensor Specs
+
+- **Operating Voltage**: 3.3V - 5.5V DC
+- **Current Consumption**: ~5mA (active), 0µA (powered off)
+- **Output**: Analog 0-3.0V
+- **Dimensions**: 98mm × 23mm × 4mm
+- **Sensing Depth**: ~50mm
+
+---
+
+## 🔌 Pin Configuration
+
+| Function | GPIO Pin | Type | Description |
+|----------|----------|------|-------------|
+| **Moisture Sensor Data** | GPIO2 | Analog Input (ADC1_CH1) | Reads soil moisture voltage |
+| **Moisture Sensor Power** | GPIO10 | Digital Output | Powers sensor only during readings |
+| **Battery Voltage** | GPIO1 | Analog Input (ADC1_CH0) | Monitors battery via voltage divider |
+| **Status LED** | GPIO8 | Digital Output (PWM) | WS2812B NeoPixel indicator |
+
+### Wiring Diagram
+
+![Schematic](.img/Schematics.png)
+
+> ⚠️ **Important**: Place the 0.1µF capacitors as close as possible to the ESP32 ADC pin (GPIO1) for accurate voltage readings.
+
+---
+
+## 🚀 Installation
+
+### Prerequisites
+
+- **Arduino IDE** 2.0+ or PlatformIO
+- **ESP32 Board Package** 3.0.0+
+- **Home Assistant** 2022.9+ with Bluetooth integration enabled
+
+### Step 1: Install Arduino Libraries
+
+Open Arduino IDE → **Tools** → **Manage Libraries**, then search and install:
+
+1. **NimBLE-Arduino** by h2zero (v1.4.0+)
+2. **FastLED** by FastLED (v3.6.0+)
+
+### Step 2: Configure Arduino IDE
+
+1. **Add ESP32 Board Manager URL**:
+   - File → Preferences → Additional Board Manager URLs
+   - Add: `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
+
+2. **Install ESP32 Boards**:
+   - Tools → Board → Boards Manager
+   - Search "esp32" by Espressif Systems
+   - Install version **3.0.0** or newer
+
+3. **Select Board**:
+   - Tools → Board → ESP32 Arduino → **ESP32H2 Dev Module**
+
+4. **Configure Settings**:
+Board: ESP32H2 Dev Module
+Upload Speed: 921600
+CPU Frequency: 96MHz
+Flash Mode: QIO
+Flash Size: 4MB
+Partition Scheme: Default 4MB with spiffs
+Core Debug Level: None
+
+> For USB debugging ensure `USB CDC on Boot` is enabled
+
+![](./.img/usb_cdc.png)
+
+### Step 3: Upload Firmware
+
+1. Connect ESP32-H2 via USB-C
+2. Select correct **COM port** (Tools → Port)
+3. Click **Upload** button
+4. Wait for "Done uploading" message
+
+---
+
+## ⚙️ Configuration
+
+### Moisture Sensor Calibration
+
+**Required for accurate readings!**
+
+1. Upload the calibration sketch: [`moisture_sensor_calibrate.ino`](./Arduino%20Sketch/moisture_sensor_calibrate.ino)
+
+2. **Dry Air Reading**:
+- Keep sensor in open air
+- Record ADC value (typically ~2048-3500)
+
+3. **Water Reading**:
+- Submerge sensor in water **up to the MAX line only**
+- Record ADC value (typically ~768-1200)
+
+4. **Update Configuration**:
+```cpp
+#define MOISTURE_SENSOR_READING_IN_AIR 2048 // Your dry value
+#define MOISTURE_SENSOR_READING_IN_WATER 784 // Your wet value
+```
+
+### Battery Voltage Calibration
+
+1. Measure actual battery voltage with multimeter (e.g., 4.00V)
+2. Upload code and check serial monitor output
+3. Calculate calibration factor:
+
+```
+Calibration Factor = Multimeter Voltage / Reported Voltage
+Example: 4.00V / 3.41V = 1.173
+```
+4. Update `readBatteryVoltage()` function:
+
+```
+float batteryVoltage = adcVoltage * multiplier;
+batteryVoltage = batteryVoltage * 1.173; // Apply calibration factor
+```
+
+### Voltage Divider Configuration
+
+For **100kΩ + 100kΩ** resistors (recommended):
+
+```
+#define VOLTAGE_DIVIDER_RESISTOR_1_KO 100 // Connected to Battery+
+#define VOLTAGE_DIVIDER_RESISTOR_2_KO 100 // Connected to GND
+```
+
+**Resistor tolerance**: Use 1% tolerance for best accuracy.
+
+### Optional Settings
+
+**Change Device Name**:
+
+```
+#define DEVICE_NAME "Garden Sensor 1" // Appears in Home Assistant
+```
+
+**Adjust Sleep Interval**:
+
+```
+const uint64_t SLEEP_TIME = 10ULL * 60ULL * 1000000ULL; // 10 minutes
+```
+**Disable LED** (for maximum battery life):
+```cpp
+#define BLINK_LED false
+```
+
+**Debug Mode**:
+```cpp
+#define DEBUG true // Enable serial output
+#define DEBUG false // Disable for deployment
+```
+
+
+---
+
+## 🏠 Home Assistant Integration
+
+### Automatic Discovery
+
+Home Assistant automatically discovers the sensor via BTHome V2 protocol—no YAML configuration required!
+
+### Step-by-Step Setup
+
+#### 1. Ensure Prerequisites
+
+✅ Home Assistant 2022.9 or later  
+✅ **Bluetooth integration** enabled (Settings → Devices & Services → Bluetooth)  
+✅ ESP32-H2 powered on and within 10m range
+
+#### 2. Discover Device
+
+1. Navigate to **Settings** → **Devices & Services**
+2. Look for **"Discovered"** section
+3. Find **"Soil Moisture Sensor"** (BTHome integration)
+4. Click **"Configure"**
+
+#### 3. Complete Setup
+
+1. Click **"Submit"** on the BTHome configuration dialog
+2. Assign to an **Area** (e.g., "Garden", "Balcony", "Living Room")
+3. Click **"Finish"**
+
+#### 4. Verify Entities
+
+Three sensor entities are automatically created:
+
+| Entity ID | Description | Unit |
+|-----------|-------------|------|
+| `sensor.soil_moisture_sensor_moisture` | Soil moisture percentage | % |
+| `sensor.soil_moisture_sensor_battery` | Battery charge level | % |
+| `sensor.soil_moisture_sensor_voltage` | Battery voltage | V |
+
+#### 5. Add to Dashboard
+
+1. Go to your Home Assistant **Overview**
+2. Click **"Edit Dashboard"** (top right)
+3. Click **"+ Add Card"** → **"Entities"**
+4. Select all three sensor entities
+5. Click **"Save"**
+
+### Manual Addition (Troubleshooting)
+
+If auto-discovery fails:
+
+1. Settings → Devices & Services → **BTHome**
+2. Click **"+ Add Entry"**
+3. Press **RESET button** on ESP32-H2
+4. Click **"Configure"** when device appears
+
+### BTHome V2 Protocol Details
+
+| Parameter | Value |
+|-----------|-------|
+| **Service UUID** | 0xFCD2 |
+| **Protocol Version** | V2 (unencrypted) |
+| **Device Type** | Not trigger-based |
+| **Packet Format** | `0x40` + Object IDs + Data |
+
+**Transmitted Data**:
+- Object ID `0x01`: Battery % (uint8)
+- Object ID `0x0C`: Voltage in mV (uint16, little-endian)
+- Object ID `0x14`: Moisture % × 100 (uint16, little-endian)
+
+**Advertisement Frequency**: Every 5 minutes (configurable)
+
+---
+
+## ⚡ Power Optimization
+
+
+### Optimization Tips
+
+1. **Disable LED**: Set `#define BLINK_LED false`
+2. **Increase Sleep Interval**: Change to 10 or 15 minutes
+3. **Reduce Advertising Packets**: Change loop from 3 to 2 iterations
+4. **Disable Debug**: Set `#define DEBUG false` before deployment
+5. **Use Larger Battery**: Upgrade to 500mAh or 1000mAh LiPo
+
+---
+
+## 🐛 Troubleshooting
+
+### Device Not Discovered in Home Assistant
+
+**Solutions**:
+- ✅ Verify Bluetooth integration is enabled
+- ✅ Check ESP32 is within 10m range
+- ✅ Press RESET button to force advertising
+- ✅ Wait for next wake cycle (up to 5 minutes)
+- ✅ Check HA logs for BTHome errors
+
+### Entities Show "Unavailable"
+
+**Solutions**:
+- ✅ Check battery voltage (>3.0V required)
+- ✅ Verify LED blinks on wake
+- ✅ Reduce distance to HA Bluetooth adapter
+- ✅ Delete and re-add device in HA
+
+### Inaccurate Moisture Readings
+
+**Solutions**:
+- ✅ Recalibrate sensor using calibration sketch
+- ✅ Verify sensor properly inserted into soil
+- ✅ Check GPIO22 outputs 3.3V during reads
+- ✅ Inspect sensor for physical damage
+
+### Incorrect Battery Voltage
+
+**Solutions**:
+- ✅ Apply calibration factor based on multimeter reading
+- ✅ Verify 100kΩ voltage divider resistors
+- ✅ Check 0.1µF capacitor placement
+- ✅ Use 1% tolerance resistors
+
+### Multiple Devices Appearing
+
+**Solutions**:
+- ✅ BLE MAC address changing on each boot
+- ✅ Update to ESP32 board package 3.0.0+
+- ✅ Delete duplicate devices from HA
+- ✅ Wait for device re-discovery after deletion
+
+---
+
+## 📚 Reference Documentation
+
+### Official Resources
+
+- [BTHome V2 Specification](https://bthome.io/format/)
+- [ESP32-H2 Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-h2_datasheet_en.pdf)
+- [NimBLE-Arduino Library](https://github.com/h2zero/NimBLE-Arduino)
+- [Home Assistant BTHome Integration](https://www.home-assistant.io/integrations/bthome/)
+
+### Community Resources
+
+- [ESP32 Board Details](https://www.espboards.dev/esp32/esp32-h2-super-mini/)
+- [FastLED Documentation](https://github.com/FastLED/FastLED)
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. **Fork** the repository
+2. Create a **feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit** changes: `git commit -m 'Add amazing feature'`
+4. **Push** to branch: `git push origin feature/amazing-feature`
+5. Open a **Pull Request**
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+## 🙏 Acknowledgments
+
+- **BTHome Protocol** - For simple and efficient BLE data format
+- **NimBLE-Arduino** - For lightweight BLE stack implementation
+- **FastLED** - For easy WS2812B LED control
+- **Home Assistant Community** - For integration support
+
+---
+
+<div align="center">
+
+**Made with 💚 for Smart Gardening**
+
+⭐ Star this project if you found it helpful! ⭐
+
+</div>
+
